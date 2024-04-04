@@ -26,6 +26,7 @@ async function run() {
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     const userCollection = client.db("AcademiaDB").collection("users");
+    const technologyCollection = client.db("AcademiaDB").collection("technology");
 
     // POST > User
     app.post('/users',async(req,res)=>{
@@ -51,8 +52,8 @@ async function run() {
 
 //GET technology
 app.post('/technology', async(req, res) => {
-    const announcement = req.body;
-    const result = await announcementCollection.insertOne(announcement);
+    const technology = req.body;
+    const result = await technologyCollection.insertOne(technology);
     res.send(result)
 })
 
