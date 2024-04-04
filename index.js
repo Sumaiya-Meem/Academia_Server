@@ -64,7 +64,12 @@ app.get('/technology',  async(req, res) => {
 
 app.post('/category', async(req, res) => {
     const category = req.body;
-    const result = await technologyCollection.insertOne(categorygit);
+    const result = await categoryCollection.insertOne(category);
+    res.send(result)
+})
+
+app.get('/category',  async(req, res) => {
+    const result = await categoryCollection.find().toArray();
     res.send(result)
 })
 
