@@ -27,6 +27,7 @@ async function run() {
     // await client.db("admin").command({ ping: 1 });
     const userCollection = client.db("AcademiaDB").collection("users");
     const technologyCollection = client.db("AcademiaDB").collection("technology");
+    const categoryCollection = client.db("AcademiaDB").collection("category");
 
     // POST > User
     app.post('/users',async(req,res)=>{
@@ -58,6 +59,12 @@ app.post('/technology', async(req, res) => {
 })
 app.get('/technology',  async(req, res) => {
     const result = await technologyCollection.find().toArray();
+    res.send(result)
+})
+
+app.post('/category', async(req, res) => {
+    const category = req.body;
+    const result = await technologyCollection.insertOne(categorygit);
     res.send(result)
 })
 
