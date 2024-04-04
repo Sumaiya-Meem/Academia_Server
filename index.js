@@ -56,7 +56,10 @@ app.post('/technology', async(req, res) => {
     const result = await technologyCollection.insertOne(technology);
     res.send(result)
 })
-
+app.get('/technology',  async(req, res) => {
+    const result = await technologyCollection.find().toArray();
+    res.send(result)
+})
 
 
 
