@@ -49,6 +49,13 @@ async function run() {
 })
 
 
+//GET technology
+app.post('/technology', async(req, res) => {
+    const announcement = req.body;
+    const result = await announcementCollection.insertOne(announcement);
+    res.send(result)
+})
+
 
 
 
