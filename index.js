@@ -57,10 +57,10 @@ app.post('/course', async(req, res) => {
     const result = await courseCollection.insertOne(courses);
     res.send(result)
 })
-// app.get('/technology',  async(req, res) => {
-//     const result = await technologyCollection.find().toArray();
-//     res.send(result)
-// })
+app.get('/course',  async(req, res) => {
+    const result = await courseCollection.find().toArray();
+    res.send(result)
+})
 
 //GET technology
 app.post('/technology', async(req, res) => {
