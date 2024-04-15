@@ -28,6 +28,7 @@ async function run() {
     const userCollection = client.db("AcademiaDB").collection("users");
     const technologyCollection = client.db("AcademiaDB").collection("technology");
     const categoryCollection = client.db("AcademiaDB").collection("category");
+    const courseCollection = client.db("AcademiaDB").collection("course");
 
     // POST > User
     app.post('/users',async(req,res)=>{
@@ -50,6 +51,16 @@ async function run() {
     res.send(result); 
 })
 
+//GET course
+app.post('/course', async(req, res) => {
+    const courses = req.body;
+    const result = await courseCollection.insertOne(courses);
+    res.send(result)
+})
+// app.get('/technology',  async(req, res) => {
+//     const result = await technologyCollection.find().toArray();
+//     res.send(result)
+// })
 
 //GET technology
 app.post('/technology', async(req, res) => {
