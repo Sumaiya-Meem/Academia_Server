@@ -61,7 +61,13 @@ app.get('/course',  async(req, res) => {
     const result = await courseCollection.find().toArray();
     res.send(result)
 })
-
+ // load single course
+ app.get('/course/:id', async (req, res) => {
+    const id = req.params.id;
+    const query = { _id: new ObjectId(id) }
+    const result = await courseCollection.findOne(query)
+    res.send(result);
+  })
 //GET technology
 app.post('/technology', async(req, res) => {
     const technology = req.body;
