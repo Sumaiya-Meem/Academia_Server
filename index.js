@@ -29,6 +29,7 @@ async function run() {
     const technologyCollection = client.db("AcademiaDB").collection("technology");
     const categoryCollection = client.db("AcademiaDB").collection("category");
     const courseCollection = client.db("AcademiaDB").collection("course");
+    const announcementCollection = client.db("AcademiaDB").collection("announcement");
 
     // POST > User
     app.post('/users',async(req,res)=>{
@@ -90,6 +91,12 @@ app.get('/category',  async(req, res) => {
     res.send(result)
 })
 
+// POST Announcement
+app.post('/announcement', async(req, res) => {
+    const announcement = req.body;
+    const result = await announcementCollection.insertOne(announcement);
+    res.send(result)
+})
 
 
 
