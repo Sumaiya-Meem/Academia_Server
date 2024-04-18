@@ -98,6 +98,10 @@ app.post('/announcement', async(req, res) => {
     res.send(result)
 })
 
+app.get('/announcement', async(req, res) => {
+    const result = await announcementCollection.find().toArray();
+    res.send(result)
+})
 
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
