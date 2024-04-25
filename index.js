@@ -1,9 +1,11 @@
 const express = require('express')
 const cors = require('cors')
 const app = express()
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY)
+
+
 require('dotenv').config()
 const port = process.env.PORT || 5000
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 app.use(cors())
 app.use(express.json())
@@ -26,13 +28,14 @@ async function run() {
     // await client.connect();
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
-    
+
     const userCollection = client.db("AcademiaDB").collection("users");
     const technologyCollection = client.db("AcademiaDB").collection("technology");
     const categoryCollection = client.db("AcademiaDB").collection("category");
     const courseCollection = client.db("AcademiaDB").collection("course");
     const announcementCollection = client.db("AcademiaDB").collection("announcement");
     const instructorCollection = client.db("AcademiaDB").collection("instructor");
+    const paymentCollection = client.db("AcademiaDB").collection("payment");
 
     // POST > User
     app.post('/users',async(req,res)=>{
@@ -120,21 +123,42 @@ app.get('/announcement', async(req, res) => {
 
 
 // payment intent
-app.post("/create-payment-intent", async (req, res) => {
-    
-    const { price } = req.body;
-    const amount =parseInt(price * 100);
+app.post('/create-payment-intent', async (req, res) => {
+  let { price } = req.body;
+  const amount = parseInt(price * 100); 
+  console.log('Server received the amount: ', amount);
 
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount,
-      currency: "usd",
-      payment_method_types: ["card"],
-    });
-  
-    res.send({
-      clientSecret: paymentIntent.client_secret,
-    });
-  });
+  try {
+      const paymentIntent = await stripe.paymentIntents.create({
+          amount: amount,
+          currency: "usd",
+          payment_method_types: ['card'],
+      });
+
+      res.send({
+          clientSecret: paymentIntent.client_secret
+      });
+  } catch (error) {
+      console.error("Error creating payment intent:", error);
+      res.status(500).send({ error: error.message });
+  }
+});
+
+app.post('/payment', async(req, res) => {
+  const paymentInfo = req.body;
+  console.log(paymentInfo);
+  const result = await paymentCollection.insertOne(paymentInfo);
+  res.send(result)
+});
+
+app.get('/payment/:email', async(req, res) => {
+  const email = req.params.email;
+  const query = {email: email};
+  const result = await paymentCollection.find(query).toArray()    
+  res.send(result)
+})
+
+
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
