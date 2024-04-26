@@ -36,6 +36,7 @@ async function run() {
     const announcementCollection = client.db("AcademiaDB").collection("announcement");
     const instructorCollection = client.db("AcademiaDB").collection("instructor");
     const paymentCollection = client.db("AcademiaDB").collection("payment");
+    const cartCollection = client.db("AcademiaDB").collection("carts");
 
     // POST > User
     app.post('/users',async(req,res)=>{
@@ -158,7 +159,12 @@ app.get('/payment/:email', async(req, res) => {
   res.send(result)
 })
 
-
+// cart 
+app.post('/carts',async(req,res)=>{
+  const item = req.body;
+  const result =await cartCollection.insertOne(item);
+  res.send(result)
+})
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
