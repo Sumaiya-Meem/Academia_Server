@@ -166,6 +166,12 @@ app.post('/carts',async(req,res)=>{
   res.send(result)
 })
 
+app.get('/carts',  async(req, res) => {
+  const result = await cartCollection.find().toArray();
+  res.send(result)
+})
+
+
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
   } finally {
     // Ensures that the client will close when you finish/error
