@@ -37,6 +37,7 @@ async function run() {
     const instructorCollection = client.db("AcademiaDB").collection("instructor");
     const paymentCollection = client.db("AcademiaDB").collection("payment");
     const cartCollection = client.db("AcademiaDB").collection("carts");
+    const saveItemCollection = client.db("AcademiaDB").collection("saveItem");
 
     // POST > User
     app.post('/users',async(req,res)=>{
@@ -178,6 +179,25 @@ app.delete('/carts/:id',  async(req, res) => {
   const result = await cartCollection.deleteOne(query);
   res.send(result)
 })
+
+// saveItem
+app.post('/saveItem',async(req,res)=>{
+  const item = req.body;
+  const result =await saveItemCollection.insertOne(item);
+  res.send(result)
+})
+
+app.get('/saveItem',  async(req, res) => {
+  const result = await saveItemCollection.find().toArray();
+  res.send(result)
+})
+app.delete('/saveItem/:id',  async(req, res) => {
+  const id=req.params.id;
+  const query={_id:new ObjectId(id)}
+  const result = await saveItemCollection.deleteOne(query);
+  res.send(result)
+})
+
 
 
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
