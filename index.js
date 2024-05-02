@@ -76,6 +76,7 @@ app.get('/course',  async(req, res) => {
     const result = await courseCollection.findOne(query)
     res.send(result);
   })
+
 //GET technology
 app.post('/technology', async(req, res) => {
     const technology = req.body;
@@ -168,6 +169,13 @@ app.post('/carts',async(req,res)=>{
 
 app.get('/carts',  async(req, res) => {
   const result = await cartCollection.find().toArray();
+  res.send(result)
+})
+
+app.delete('/carts/:id',  async(req, res) => {
+  const id=req.params.id;
+  const query={_id:new ObjectId(id)}
+  const result = await cartCollection.deleteOne(query);
   res.send(result)
 })
 
