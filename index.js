@@ -52,6 +52,12 @@ async function run() {
         res.send(result);
     })
 
+  //   app.get('/users/:id',async(req,res)=>{
+  //     const id = req.params.id;
+  //     const query = { _id: new ObjectId(id) }
+  //     const result =await userCollection.findOne(query);
+  //     res.send(result);
+  // })
     
    app.get('/users/:email',async(req, res) => {
     const email = req.params.email;
@@ -67,8 +73,15 @@ app.post('/course', async(req, res) => {
     res.send(result)
 })
 app.get('/course',  async(req, res) => {
-    const result = await courseCollection.find().toArray();
+  const page =  parseInt(req.query.page);
+  const size =  parseInt(req.query.size);
+  // console.log("page && size: ",page,size);
+    const result = await courseCollection.find().skip((page-1)*size).limit(size).toArray();
     res.send(result)
+})
+app.get('/courseCount',  async(req, res) => {
+  const count = await courseCollection.estimatedDocumentCount();
+  res.send({count})
 })
  // load single course
  app.get('/course/:id', async (req, res) => {
@@ -160,6 +173,10 @@ app.get('/payment/:email', async(req, res) => {
   const result = await paymentCollection.find(query).toArray()    
   res.send(result)
 })
+app.get('/payment', async(req, res) => {
+  const result = await paymentCollection.find().toArray()    
+  res.send(result)
+})
 
 // cart 
 app.post('/carts',async(req,res)=>{
@@ -197,6 +214,52 @@ app.delete('/saveItem/:id',  async(req, res) => {
   const result = await saveItemCollection.deleteOne(query);
   res.send(result)
 })
+
+app.get('/admin-profile-data', async (req, res) => {
+  // Count total courses
+  const allCourse = await courseCollection.estimatedDocumentCount();
+
+  // Calculate total payments
+  const totalPayment = await paymentCollection.aggregate([
+    {
+      $addFields: {
+        convertedPrice: { $toDecimal: "$price" } // Convert string price to decimal
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        total: { $sum: "$convertedPrice" } // Sum up all converted prices
+      }
+    }
+  ]).toArray();
+
+  // calculate the total number of students 
+  const totalEnrollment = await courseCollection.aggregate([
+    {
+      $addFields: {
+        convertedEnrollments: { $toInt: "$totalEnrollStudent" } // Convert the string 'totalEnrollStudent' to integer
+      }
+    },
+    {
+      $group: {
+        _id: null,
+        totalEnrollments: { $sum: "$convertedEnrollments" } // Sum the converted enrollments
+      }
+    }
+  ]).toArray();
+
+  res.send({
+    allCourse,
+    totalPayments: totalPayment.length > 0 ? totalPayment[0].total : 0,
+    totalStudents: totalEnrollment.length > 0 ? totalEnrollment[0].totalEnrollments : 0
+  });
+});
+
+
+
+
+
 
 
 
