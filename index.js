@@ -7,7 +7,14 @@ require('dotenv').config()
 const port = process.env.PORT || 5000
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-app.use(cors())
+app.use(cors({
+  origin: [
+    "https://academia-bd85b.web.app",
+    "http://localhost:3000"
+  ],
+  credentials: true
+}));
+
 app.use(express.json())
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -28,6 +35,8 @@ async function run() {
     // await client.connect();
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
+
+     await client.connect(); 
 
     const userCollection = client.db("AcademiaDB").collection("users");
     const technologyCollection = client.db("AcademiaDB").collection("technology");
@@ -67,18 +76,36 @@ async function run() {
 })
 
 //GET course
+app.get('/course', async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const size = parseInt(req.query.size) || 10;
+
+    const result = await courseCollection
+      .find()
+      .skip((page - 1) * size)
+      .limit(size)
+      .toArray();
+
+    res.send(result);
+  } catch (error) {
+    console.error(error);
+    res.status(500).send({ error: "Failed to fetch courses" });
+  }
+});
+
 app.post('/course', async(req, res) => {
     const courses = req.body;
     const result = await courseCollection.insertOne(courses);
     res.send(result)
 })
-app.get('/course',  async(req, res) => {
-  const page =  parseInt(req.query.page);
-  const size =  parseInt(req.query.size);
-  // console.log("page && size: ",page,size);
-    const result = await courseCollection.find().skip((page-1)*size).limit(size).toArray();
-    res.send(result)
-})
+// app.get('/course',  async(req, res) => {
+//   const page =  parseInt(req.query.page);
+//   const size =  parseInt(req.query.size);
+//   // console.log("page && size: ",page,size);
+//     const result = await courseCollection.find().skip((page-1)*size).limit(size).toArray();
+//     res.send(result)
+// })
 app.get('/courseCount',  async(req, res) => {
   const count = await courseCollection.estimatedDocumentCount();
   res.send({count})
@@ -276,6 +303,4 @@ app.get('/', (req, res) => {
     res.send('Academia Website is running .....')
   })
   
-  app.listen(port, () => {
-    console.log(`Academia Website  is running on port ${port}`)
-  })
+  module.exports = app;
