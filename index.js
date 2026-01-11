@@ -303,4 +303,8 @@ app.get('/', (req, res) => {
     res.send('Academia Website is running .....')
   })
   
+  // app.listen(port, () => {
+  //   console.log(`Academia Website  is running on port ${port}`)
+  // })
+
   module.exports = app;
