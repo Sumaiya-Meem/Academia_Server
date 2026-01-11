@@ -310,6 +310,7 @@
 //   module.exports = app;
 
 // /api/index.js
+// api/index.js
 const express = require('express');
 const cors = require('cors');
 const serverless = require('serverless-http');
@@ -317,15 +318,29 @@ require('dotenv').config();
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-// ----------- MongoDB Singleton for Vercel Serverless -----------
-let client;
-let clientPromise;
+// ---------------- Express App ----------------
+const app = express();
 
+app.use(cors({
+  origin: [
+    "https://academia-bd85b.web.app",
+    "http://localhost:3000",
+    "http://localhost:5174"
+  ],
+  credentials: true
+}));
+
+app.use(express.json());
+
+// ---------------- MongoDB Setup ----------------
 if (!process.env.DB_USER || !process.env.DB_PASS) {
   throw new Error("Missing MongoDB environment variables!");
 }
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ojnnavp.mongodb.net/?retryWrites=true&w=majority`;
+
+let client;
+let clientPromise;
 
 if (!clientPromise) {
   client = new MongoClient(uri, {
@@ -338,22 +353,7 @@ if (!clientPromise) {
   clientPromise = client.connect();
 }
 
-// ----------------- Express App -----------------
-const app = express();
-
-app.use(cors({
-  origin: [
-    "https://academia-bd85b.web.app",
-    "http://localhost:3000",
-    "http://localhost:5173"
-  ],
-  credentials: true
-}));
-
-app.use(express.json());
-
-// -------------- Routes -----------------
-
+// ---------------- Routes ----------------
 app.get('/', async (req, res) => {
   res.send("Academia API is running...");
 });
@@ -362,8 +362,7 @@ app.get('/', async (req, res) => {
 app.post('/users', async (req, res) => {
   const client = await clientPromise;
   const userCollection = client.db("AcademiaDB").collection("users");
-  const user = req.body;
-  const result = await userCollection.insertOne(user);
+  const result = await userCollection.insertOne(req.body);
   res.send(result);
 });
 
@@ -377,8 +376,7 @@ app.get('/users', async (req, res) => {
 app.get('/users/:email', async (req, res) => {
   const client = await clientPromise;
   const userCollection = client.db("AcademiaDB").collection("users");
-  const email = req.params.email;
-  const result = await userCollection.findOne({ email });
+  const result = await userCollection.findOne({ email: req.params.email });
   res.send(result);
 });
 
@@ -386,8 +384,7 @@ app.get('/users/:email', async (req, res) => {
 app.post('/course', async (req, res) => {
   const client = await clientPromise;
   const courseCollection = client.db("AcademiaDB").collection("course");
-  const course = req.body;
-  const result = await courseCollection.insertOne(course);
+  const result = await courseCollection.insertOne(req.body);
   res.send(result);
 });
 
@@ -409,8 +406,7 @@ app.get('/course', async (req, res) => {
 app.get('/course/:id', async (req, res) => {
   const client = await clientPromise;
   const courseCollection = client.db("AcademiaDB").collection("course");
-  const id = req.params.id;
-  const result = await courseCollection.findOne({ _id: new ObjectId(id) });
+  const result = await courseCollection.findOne({ _id: new ObjectId(req.params.id) });
   res.send(result);
 });
 
@@ -424,15 +420,15 @@ app.get('/courseCount', async (req, res) => {
 // ---------------- Technology ----------------
 app.post('/technology', async (req, res) => {
   const client = await clientPromise;
-  const technologyCollection = client.db("AcademiaDB").collection("technology");
-  const result = await technologyCollection.insertOne(req.body);
+  const techCollection = client.db("AcademiaDB").collection("technology");
+  const result = await techCollection.insertOne(req.body);
   res.send(result);
 });
 
 app.get('/technology', async (req, res) => {
   const client = await clientPromise;
-  const technologyCollection = client.db("AcademiaDB").collection("technology");
-  const result = await technologyCollection.find().toArray();
+  const techCollection = client.db("AcademiaDB").collection("technology");
+  const result = await techCollection.find().toArray();
   res.send(result);
 });
 
@@ -492,7 +488,6 @@ app.post('/create-payment-intent', async (req, res) => {
       currency: "usd",
       payment_method_types: ['card'],
     });
-
     res.send({ clientSecret: paymentIntent.client_secret });
   } catch (error) {
     console.error(error);
@@ -580,7 +575,6 @@ app.get('/admin-profile-data', async (req, res) => {
 
   const totalPayments = totalPaymentAgg.length > 0 ? totalPaymentAgg[0].total : 0;
 
-  // calculate total students
   const totalEnrollmentAgg = await courseCollection.aggregate([
     { $addFields: { convertedEnrollments: { $toInt: "$totalEnrollStudent" } } },
     { $group: { _id: null, totalEnrollments: { $sum: "$convertedEnrollments" } } }
@@ -591,5 +585,12 @@ app.get('/admin-profile-data', async (req, res) => {
   res.send({ allCourse, totalPayments, totalStudents });
 });
 
-// ---------------- Export Serverless Handler ----------------
+// ---------------- LOCAL SERVER ----------------
+if (process.env.NODE_ENV !== 'production') {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () => console.log(`Server running locally on http://localhost:${PORT}`));
+}
+
+// ---------------- EXPORT FOR VERCEL ----------------
 module.exports.handler = serverless(app);
+
