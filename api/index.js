@@ -309,18 +309,17 @@
 
 //   module.exports = app;
 
-// /api/index.js
 // api/index.js
 const express = require('express');
 const cors = require('cors');
-const serverless = require('serverless-http');
 require('dotenv').config();
+
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
-// ---------------- Express App ----------------
 const app = express();
 
+/* ---------------- Middleware ---------------- */
 app.use(cors({
   origin: [
     "https://academia-bd85b.web.app",
@@ -329,268 +328,195 @@ app.use(cors({
   ],
   credentials: true
 }));
-
 app.use(express.json());
 
-// ---------------- MongoDB Setup ----------------
-if (!process.env.DB_USER || !process.env.DB_PASS) {
-  throw new Error("Missing MongoDB environment variables!");
-}
-
+/* ---------------- MongoDB (Vercel Safe) ---------------- */
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ojnnavp.mongodb.net/?retryWrites=true&w=majority`;
 
-let client;
-let clientPromise;
+let cachedClient = null;
 
-if (!clientPromise) {
-  client = new MongoClient(uri, {
+async function getClient() {
+  if (cachedClient) return cachedClient;
+  const client = new MongoClient(uri, {
     serverApi: {
       version: ServerApiVersion.v1,
       strict: true,
       deprecationErrors: true,
     },
   });
-  clientPromise = client.connect();
+  cachedClient = await client.connect();
+  return cachedClient;
 }
 
-// ---------------- Routes ----------------
-app.get('/', async (req, res) => {
-  res.send("Academia API is running...");
+/* ---------------- Root ---------------- */
+app.get('/', (req, res) => {
+  res.send("Academia API is running on Vercel 🚀");
 });
 
-// ---------------- Users ----------------
+/* ================= USERS ================= */
 app.post('/users', async (req, res) => {
-  const client = await clientPromise;
-  const userCollection = client.db("AcademiaDB").collection("users");
-  const result = await userCollection.insertOne(req.body);
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("users").insertOne(req.body));
 });
 
 app.get('/users', async (req, res) => {
-  const client = await clientPromise;
-  const userCollection = client.db("AcademiaDB").collection("users");
-  const result = await userCollection.find().toArray();
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("users").find().toArray());
 });
 
 app.get('/users/:email', async (req, res) => {
-  const client = await clientPromise;
-  const userCollection = client.db("AcademiaDB").collection("users");
-  const result = await userCollection.findOne({ email: req.params.email });
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("users").findOne({ email: req.params.email }));
 });
 
-// ---------------- Course ----------------
+/* ================= COURSE ================= */
 app.post('/course', async (req, res) => {
-  const client = await clientPromise;
-  const courseCollection = client.db("AcademiaDB").collection("course");
-  const result = await courseCollection.insertOne(req.body);
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("course").insertOne(req.body));
 });
 
 app.get('/course', async (req, res) => {
-  const client = await clientPromise;
-  const courseCollection = client.db("AcademiaDB").collection("course");
-
+  const db = (await getClient()).db("AcademiaDB");
   const page = parseInt(req.query.page) || 1;
   const size = parseInt(req.query.size) || 10;
-
-  const result = await courseCollection.find()
-    .skip((page - 1) * size)
-    .limit(size)
-    .toArray();
-
-  res.send(result);
+  res.send(
+    await db.collection("course")
+      .find()
+      .skip((page - 1) * size)
+      .limit(size)
+      .toArray()
+  );
 });
 
 app.get('/course/:id', async (req, res) => {
-  const client = await clientPromise;
-  const courseCollection = client.db("AcademiaDB").collection("course");
-  const result = await courseCollection.findOne({ _id: new ObjectId(req.params.id) });
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("course").findOne({ _id: new ObjectId(req.params.id) }));
 });
 
 app.get('/courseCount', async (req, res) => {
-  const client = await clientPromise;
-  const courseCollection = client.db("AcademiaDB").collection("course");
-  const count = await courseCollection.estimatedDocumentCount();
-  res.send({ count });
+  const db = (await getClient()).db("AcademiaDB");
+  res.send({ count: await db.collection("course").estimatedDocumentCount() });
 });
 
-// ---------------- Technology ----------------
+/* ================= TECHNOLOGY ================= */
 app.post('/technology', async (req, res) => {
-  const client = await clientPromise;
-  const techCollection = client.db("AcademiaDB").collection("technology");
-  const result = await techCollection.insertOne(req.body);
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("technology").insertOne(req.body));
 });
 
 app.get('/technology', async (req, res) => {
-  const client = await clientPromise;
-  const techCollection = client.db("AcademiaDB").collection("technology");
-  const result = await techCollection.find().toArray();
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("technology").find().toArray());
 });
 
-// ---------------- Instructor ----------------
-app.post('/instructor', async (req, res) => {
-  const client = await clientPromise;
-  const instructorCollection = client.db("AcademiaDB").collection("instructor");
-  const result = await instructorCollection.insertOne(req.body);
-  res.send(result);
-});
-
-app.get('/instructor', async (req, res) => {
-  const client = await clientPromise;
-  const instructorCollection = client.db("AcademiaDB").collection("instructor");
-  const result = await instructorCollection.find().toArray();
-  res.send(result);
-});
-
-// ---------------- Category ----------------
+/* ================= CATEGORY ================= */
 app.post('/category', async (req, res) => {
-  const client = await clientPromise;
-  const categoryCollection = client.db("AcademiaDB").collection("category");
-  const result = await categoryCollection.insertOne(req.body);
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("category").insertOne(req.body));
 });
 
 app.get('/category', async (req, res) => {
-  const client = await clientPromise;
-  const categoryCollection = client.db("AcademiaDB").collection("category");
-  const result = await categoryCollection.find().toArray();
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("category").find().toArray());
 });
 
-// ---------------- Announcement ----------------
+/* ================= INSTRUCTOR ================= */
+app.post('/instructor', async (req, res) => {
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("instructor").insertOne(req.body));
+});
+
+app.get('/instructor', async (req, res) => {
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("instructor").find().toArray());
+});
+
+/* ================= ANNOUNCEMENT ================= */
 app.post('/announcement', async (req, res) => {
-  const client = await clientPromise;
-  const announcementCollection = client.db("AcademiaDB").collection("announcement");
-  const result = await announcementCollection.insertOne(req.body);
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("announcement").insertOne(req.body));
 });
 
 app.get('/announcement', async (req, res) => {
-  const client = await clientPromise;
-  const announcementCollection = client.db("AcademiaDB").collection("announcement");
-  const result = await announcementCollection.find().toArray();
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("announcement").find().toArray());
 });
 
-// ---------------- Payment ----------------
-app.post('/create-payment-intent', async (req, res) => {
-  const { price } = req.body;
-  const amount = parseInt(price * 100);
-
-  try {
-    const paymentIntent = await stripe.paymentIntents.create({
-      amount,
-      currency: "usd",
-      payment_method_types: ['card'],
-    });
-    res.send({ clientSecret: paymentIntent.client_secret });
-  } catch (error) {
-    console.error(error);
-    res.status(500).send({ error: error.message });
-  }
-});
-
-app.post('/payment', async (req, res) => {
-  const client = await clientPromise;
-  const paymentCollection = client.db("AcademiaDB").collection("payment");
-  const result = await paymentCollection.insertOne(req.body);
-  res.send(result);
-});
-
-app.get('/payment/:email', async (req, res) => {
-  const client = await clientPromise;
-  const paymentCollection = client.db("AcademiaDB").collection("payment");
-  const result = await paymentCollection.find({ email: req.params.email }).toArray();
-  res.send(result);
-});
-
-app.get('/payment', async (req, res) => {
-  const client = await clientPromise;
-  const paymentCollection = client.db("AcademiaDB").collection("payment");
-  const result = await paymentCollection.find().toArray();
-  res.send(result);
-});
-
-// ---------------- Cart ----------------
+/* ================= CART ================= */
 app.post('/carts', async (req, res) => {
-  const client = await clientPromise;
-  const cartCollection = client.db("AcademiaDB").collection("carts");
-  const result = await cartCollection.insertOne(req.body);
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("carts").insertOne(req.body));
 });
 
 app.get('/carts', async (req, res) => {
-  const client = await clientPromise;
-  const cartCollection = client.db("AcademiaDB").collection("carts");
-  const result = await cartCollection.find().toArray();
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("carts").find().toArray());
 });
 
 app.delete('/carts/:id', async (req, res) => {
-  const client = await clientPromise;
-  const cartCollection = client.db("AcademiaDB").collection("carts");
-  const result = await cartCollection.deleteOne({ _id: new ObjectId(req.params.id) });
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("carts").deleteOne({ _id: new ObjectId(req.params.id) }));
 });
 
-// ---------------- SaveItem ----------------
+/* ================= SAVE ITEM ================= */
 app.post('/saveItem', async (req, res) => {
-  const client = await clientPromise;
-  const saveItemCollection = client.db("AcademiaDB").collection("saveItem");
-  const result = await saveItemCollection.insertOne(req.body);
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("saveItem").insertOne(req.body));
 });
 
 app.get('/saveItem', async (req, res) => {
-  const client = await clientPromise;
-  const saveItemCollection = client.db("AcademiaDB").collection("saveItem");
-  const result = await saveItemCollection.find().toArray();
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("saveItem").find().toArray());
 });
 
 app.delete('/saveItem/:id', async (req, res) => {
-  const client = await clientPromise;
-  const saveItemCollection = client.db("AcademiaDB").collection("saveItem");
-  const result = await saveItemCollection.deleteOne({ _id: new ObjectId(req.params.id) });
-  res.send(result);
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("saveItem").deleteOne({ _id: new ObjectId(req.params.id) }));
 });
 
-// ---------------- Admin Profile Data ----------------
+/* ================= PAYMENT ================= */
+app.post('/create-payment-intent', async (req, res) => {
+  const amount = Math.round(req.body.price * 100);
+  const intent = await stripe.paymentIntents.create({
+    amount,
+    currency: "usd",
+    payment_method_types: ['card'],
+  });
+  res.send({ clientSecret: intent.client_secret });
+});
+
+app.post('/payment', async (req, res) => {
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("payment").insertOne(req.body));
+});
+
+app.get('/payment/:email', async (req, res) => {
+  const db = (await getClient()).db("AcademiaDB");
+  res.send(await db.collection("payment").find({ email: req.params.email }).toArray());
+});
+
+/* ================= ADMIN PROFILE ================= */
 app.get('/admin-profile-data', async (req, res) => {
-  const client = await clientPromise;
-  const courseCollection = client.db("AcademiaDB").collection("course");
-  const paymentCollection = client.db("AcademiaDB").collection("payment");
+  const db = (await getClient()).db("AcademiaDB");
 
-  const allCourse = await courseCollection.estimatedDocumentCount();
+  const allCourse = await db.collection("course").estimatedDocumentCount();
 
-  const totalPaymentAgg = await paymentCollection.aggregate([
-    { $addFields: { convertedPrice: { $toDecimal: "$price" } } },
-    { $group: { _id: null, total: { $sum: "$convertedPrice" } } }
+  const totalPaymentsAgg = await db.collection("payment").aggregate([
+    { $addFields: { priceNum: { $toDouble: "$price" } } },
+    { $group: { _id: null, total: { $sum: "$priceNum" } } }
   ]).toArray();
 
-  const totalPayments = totalPaymentAgg.length > 0 ? totalPaymentAgg[0].total : 0;
-
-  const totalEnrollmentAgg = await courseCollection.aggregate([
-    { $addFields: { convertedEnrollments: { $toInt: "$totalEnrollStudent" } } },
-    { $group: { _id: null, totalEnrollments: { $sum: "$convertedEnrollments" } } }
+  const totalEnrollAgg = await db.collection("course").aggregate([
+    { $addFields: { enrollNum: { $toInt: "$totalEnrollStudent" } } },
+    { $group: { _id: null, total: { $sum: "$enrollNum" } } }
   ]).toArray();
 
-  const totalStudents = totalEnrollmentAgg.length > 0 ? totalEnrollmentAgg[0].totalEnrollments : 0;
-
-  res.send({ allCourse, totalPayments, totalStudents });
+  res.send({
+    allCourse,
+    totalPayments: totalPaymentsAgg[0]?.total || 0,
+    totalStudents: totalEnrollAgg[0]?.total || 0
+  });
 });
 
-// ---------------- LOCAL SERVER ----------------
-if (process.env.NODE_ENV !== 'production') {
-  const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () => console.log(`Server running locally on http://localhost:${PORT}`));
-}
-
-// ---------------- EXPORT FOR VERCEL ----------------
-module.exports.handler = serverless(app);
-
+/* ---------------- EXPORT ---------------- */
+module.exports = app;
